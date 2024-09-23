@@ -18,47 +18,50 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.client.registration.azure.jwk-set-uri}")
     private String jwkSetUri = "";
 
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeHttpRequests(authorizeRequests ->
-//                        authorizeRequests
-//                                .requestMatchers("/home").hasRole("VER_HOME")
-//                                .anyRequest().authenticated()
-//                )
-//                .oauth2Login(oauth2Login ->
-//                        oauth2Login
-//                                .defaultSuccessUrl("/home", true)
-//                )
-//                .logout(logout ->
-//                        logout
-//                                .logoutUrl("/logout")
-//                                .logoutSuccessUrl("/")
-//                )
-//                .oauth2ResourceServer(oauth2 ->
-//                        oauth2.jwt(jwt ->
-//                                jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()) // Configura o converter de roles JWT
-//                        )
-//                );
-//
-//        return http.build();
-//    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/items").authenticated() // Protege o endpoint /items
-                        .anyRequest().permitAll()
+                .authorizeHttpRequests(authorizeRequests ->
+                        authorizeRequests
+                                .requestMatchers(
+                                        "/login-redirect"
+                                )
+                                .permitAll()
+                                .anyRequest().authenticated()
+                ).csrf(csfr -> csfr.disable())
+                .oauth2Login(oauth2Login ->
+                        oauth2Login
+                                .defaultSuccessUrl("/home", true)
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/oauth2/authorization/azure") // URL de login do Azure
+                .logout(logout ->
+                        logout
+                                .logoutUrl("/logout")
+                                .logoutSuccessUrl("/")
                 )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/") // Redireciona após logout
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwt ->
+                                jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()) // Configura o converter de roles JWT
+                        )
                 );
+
         return http.build();
     }
+
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers("/items").authenticated() // Protege o endpoint /items
+//                        .anyRequest().permitAll()
+//                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        .loginPage("/oauth2/authorization/azure") // URL de login do Azure
+//                )
+//                .logout(logout -> logout
+//                        .logoutSuccessUrl("/") // Redireciona após logout
+//                );
+//        return http.build();
+//    }
 
     // Configura o JwtAuthenticationConverter para mapear roles
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -71,7 +74,7 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         // Substitua YOUR_TENANT_ID pela identificação correta do tenant no Azure AD
-        
+
         return NimbusJwtDecoder.withJwkSetUri(this.jwkSetUri).build();
     }
 }

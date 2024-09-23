@@ -3,7 +3,11 @@ package com.estudo.spring_boot_login_azure_ad.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,7 +21,8 @@ public class AuthController {
     @Value("${azure.activedirectory.client-secret}")
     private String clientSecret;
 
-    @Value("${azure.activedirectory.redirect-uri}")
+    //@Value("${azure.activedirectory.redirect-uri}")
+    @Value("${spring.security.oauth2.client.registration.azure.redirect-uri}")
     private String redirectUri;
 
     @Value("${spring.security.oauth2.client.registration.azure.token-uri}")
@@ -34,6 +39,7 @@ public class AuthController {
         // Chamar método para trocar o código pelo token
         String accessToken = exchangeCodeForToken(code);
         if (accessToken != null) {
+            System.out.println(accessToken);
             return ResponseEntity.ok("Token JWT: " + accessToken);
         } else {
             return ResponseEntity.badRequest().body("Falha ao obter o token");
@@ -48,20 +54,25 @@ public class AuthController {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         // Montar o corpo da requisição
-        String requestBody = "grant_type=authorization_code"
-                + "&client_id=" + clientId
-                + "&client_secret=" + clientSecret
-                + "&redirect_uri=" + redirectUri
-                + "&code=" + code;
+        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("grant_type", "authorization_code");
+        requestBody.add("client_id", clientId);
+        requestBody.add("client_secret", clientSecret);
+        requestBody.add("redirect_uri", redirectUri);
+        requestBody.add("code", code);
 
-        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+        // Criar a entidade da requisição com headers e body
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(requestBody, headers);
 
-        // Fazer a chamada ao endpoint de token do Azure
-        ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, String.class);
-
-        // Retornar o token
-        System.out.println(response.getBody());
-        return response.getBody(); // Aqui você pode extrair o token do corpo da resposta se necessário
+        try {
+            // Fazer a chamada ao endpoint de token do Azure
+            ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, String.class);
+            // Se a requisição for bem-sucedida, retornamos o corpo da resposta (o token JWT)
+            return response.getBody();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
 

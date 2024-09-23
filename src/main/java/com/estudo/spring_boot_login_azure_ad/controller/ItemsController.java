@@ -11,7 +11,7 @@ import java.util.List;
 public class ItemsController {
 
     @GetMapping("/items")
-    @PreAuthorize("isAuthenticated()")  // Garante que somente usuários autenticados possam acessar
+    @PreAuthorize("hasRole('VER_HOME')")
     public List<String> listItems() {
         return Arrays.asList("Item 1", "Item 2", "Item 3");
     }
